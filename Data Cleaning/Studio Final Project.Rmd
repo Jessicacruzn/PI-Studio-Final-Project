@@ -1,0 +1,166 @@
+---
+title: "Yelp Dataset Shortened"
+author: "Dayvonn Jones"
+date: "4/27/2022"
+output: html_document
+---
+
+#Library Set Up#
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(tidytext)
+library(syuzhet)
+```
+#Data Set Up
+```{r}
+yelp_reviews <- read_csv('/Users/dayvonnjones/Documents/Studio in Public Informatics/Studio Final Project/Yelp Dataset Shortened.csv')
+view(yelp_reviews)
+head(yelp_reviews)
+```
+
+#Bar Chart for Restaurants Open#
+```{r}
+ggplot(yelp_reviews, aes(x=factor(is_open)))+
+  geom_bar(stat="count", width=0.7, fill="steelblue")+
+  theme_minimal()
+```
+
+#Bar Chart for Restaurants in States#
+```{r}
+ggplot(yelp_reviews, aes(x=factor(state)))+
+  geom_bar(stat="count", width=0.7, fill="steelblue")+
+  theme_minimal()
+```
+
+#Set Up Sentiments#
+text.yelp_reviews(tibble(text = str_to_lower(df$tesxt)))
+
+#Analyze
+```{r}
+library(tidyverse)
+library(tidytext)
+library(rtweet)
+library(quanteda)
+library(quanteda.textplots)
+library(jsonlite)
+library(sentimentr)
+library(dplyr)
+library(ggplot2)
+library(textclean)
+library(tm)
+library(syuzhet)
+library(NLP)
+library(wordcloud)
+library(RColorBrewer)
+library(SnowballC)
+library(textdata)
+```
+
+#The Reviews Ran for the First Time#
+```{r}
+sentiment<-read.csv('/Users/dayvonnjones/Documents/Studio in Public Informatics/Studio Final Project/Yelp Dataset Shortened.csv')
+text.sentiment <- tibble(text = str_to_lower(sentiment$text))
+```
+
+#Set Up Phrases#
+```{r}
+colnames(sentiment)
+phrasesCorpus = Corpus(VectorSource(sentiment$text))
+phrasesCorpus[[1]][1]
+```
+#Sentiment Set Up#
+```{r}
+emotions <- get_nrc_sentiment(sentiment$text)
+emotion_bar <- colSums(emotions)
+emotion_sum <-data.frame(count=emotion_bar, emotion=names(emotion_bar))
+```
+
+#Bar Plot Showing the Count for 8 Different Emotions and the Negative and Positive Rating#
+```{r}
+ggplot(emotion_sum, aes(x = reorder(emotion, -count), y = count)) + 
+  geom_bar(stat = 'identity')
+  labs(y = "Count of Emotion", x = NULL) + 
+  coord_flip()
+ggsave("emotion_sum.jpeg")
+```
+
+#Sentiment Analysis with the "tidytext" Package Using the "bing" lexicon#
+```{r}
+bing_word_counts <- text.sentiment %>% unnest_tokens(output = word, input = text) %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, sentiment, sort = TRUE)
+```
+
+#Select Top 10 Words by Sentiment#
+```{r}
+bing_top_10_words_by_sentiment <- bing_word_counts %>% 
+  group_by(sentiment) %>% 
+  slice_max(order_by = n, n = 10) %>% 
+  ungroup() %>% 
+  mutate(word = reorder(word, n)) 
+bing_top_10_words_by_sentiment
+```
+
+#Create a Bar Plot Showing the Contribution of Words to the Sentiment#
+```{r}
+bing_top_10_words_by_sentiment %>% 
+  ggplot(aes(word, n, fill = sentiment)) + 
+  geom_col(show.legend = FALSE) + 
+  facet_wrap(~sentiment, scales = "free_y") + 
+  labs(y = "Contribution to Sentiment Words", x = NULL) + 
+  coord_flip()
+ggsave("contribution_to_sentiment_words.jpeg")
+```
+#Sentiment Analysis with the "tidytext" Package using the "loughran" lexicon#
+```{r}
+loughran_word_counts <- text.sentiment %>% unnest_tokens(output = word, input = text) %>%
+  inner_join(get_sentiments("loughran")) %>%
+  count(word, sentiment, sort = TRUE)
+```
+#Selecting the Top 10 Words by the Sentiment#
+```{r}
+loughran_top_10_words_by_sentiment <- loughran_word_counts %>% 
+  group_by(sentiment) %>% 
+  slice_max(order_by = n, n = 10) %>% 
+  ungroup() %>%
+  mutate(word = reorder(word, n))
+loughran_top_10_words_by_sentiment
+```
+
+#Creating a Bar Plot Showing Contribution of Words to the Sentiment#
+```{r}
+loughran_top_10_words_by_sentiment %>% 
+  ggplot(aes(word, n, fill = sentiment)) + 
+  geom_col(show.legend = FALSE) + 
+  facet_wrap(~sentiment, scales = "free_y") + 
+  labs(y = "Contribution to sentiment", x = NULL) + 
+  coord_flip()
+ggsave("contribution_to_sentiment.jpeg")
+```
+
+#Set Up Wordcloud#
+```{r}
+phrasesCorpus = tm_map(phrasesCorpus, content_transformer(tolower))
+phrasesCorpus = tm_map(phrasesCorpus, removeNumbers)
+phrasesCorpus = tm_map(phrasesCorpus, PlainTextDocument)
+phrasesCorpus = tm_map(phrasesCorpus, removePunctuation)
+phrasesCorpus = tm_map(phrasesCorpus, removeWords, stopwords("english"))
+phrasesCorpus = tm_map(phrasesCorpus, stemDocument)
+#phrasesCorpus = tm_map(phrasesCorpus, stripWhitespace)
+phrasesCorpus <- Corpus(VectorSource(phrasesCorpus))
+phrasesCorpus[[1]][1]
+```
+
+#Create TDM#
+```{r}
+myDTM = DocumentTermMatrix(phrasesCorpus)
+m = as.matrix(myDTM)
+v = sort(rowSums(m), decreasing = TRUE)
+d = data.frame(word = names(v),freq=v)
+```
+
+#Wordcloud#
+```{r}
+wordcloud(d$word, d$freq, random.order=FALSE, rot.per=0.35, scale=c(5,0.5), max.words=100, colors=brewer.pal(8, "Dark2") )
+```
